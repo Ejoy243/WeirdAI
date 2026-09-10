@@ -24,7 +24,10 @@ class SimpleSelfAttention(nn.Module):
         # 2. Normalize scores with softmax.
         # 3. Compute context vectors as weighted sums of input vectors.
 
-        raise NotImplementedError("Implement simple self-attention.")
+        attn_scores = x @ x.T
+        attention_weights = torch.softmax(attn_scores, dim=-1)
+        context_vectors = attention_weights @ x
+        return context_vectors, attention_weights
 
 class SelfAttention(nn.Module):
     """
@@ -54,7 +57,17 @@ class SelfAttention(nn.Module):
         # 3. Apply softmax.
         # 4. Compute context vectors.
 
-        raise NotImplementedError("Implement trainable self-attention.")
+        keys = self.key(x)  # (b, nums_tokens, d_out)
+        queries = self.query(x)  # (b, nums_tokens, d_out)
+        values = self.value(x)  # (b, nums_tokens, d_out)
+
+        # Compute scaled attention scores
+        d_k = keys.shape[-1]
+        attn_scores = torch.matmul(queries, keys.transpose(-2, -1)) / (d_k ** 0.5)
+        attention_weights = torch.softmax(attn_scores, dim=-1)  
+        context_vectors = torch.matmul(attention_weights, values)
+
+        return context_vectors, attention_weights
 
 class CausalAttention(nn.Module):
     """
@@ -91,4 +104,18 @@ class CausalAttention(nn.Module):
         # 5. Apply dropout.
         # 6. Compute context vectors.
 
-        raise NotImplementedError("Implement causal attention.")
+        b, nums_tokens, d_in = x.shape
+        keys = self.key(x)  # (b, nums_tokens, d_out)
+        queries = self.query(x)  # (b, nums_tokens, d_out)
+        values = self.value(x)  # (b, nums_tokens, d_out)
+
+        d_k = keys.shape[-1]
+        attn_scores = torch.matmul(queries, keys.transpose(-2, -1)) / (d_k ** 0.5)
+        attn_scores = attn_scores.masked_fill(
+            self.mask[:nums_tokens, :nums_tokens].bool(), float('-inf')
+        )
+        attention_weights = torch.softmax(attn_scores, dim=-1)
+        attention_weights = self.dropout(attention_weights)
+        context_vectors = torch.matmul(attention_weights, values)
+
+        return context_vectors
