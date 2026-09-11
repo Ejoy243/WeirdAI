@@ -8,8 +8,8 @@ class GELU(nn.Module):
         # TODO
 
         raise NotImplementedError()
-    
-    
+
+
 class FeedForward(nn.Module):
 
     def __init__(self, emb_dim):

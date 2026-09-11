@@ -64,7 +64,7 @@ class SelfAttention(nn.Module):
         # Compute scaled attention scores
         d_k = keys.shape[-1]
         attn_scores = torch.matmul(queries, keys.transpose(-2, -1)) / (d_k ** 0.5)
-        attention_weights = torch.softmax(attn_scores, dim=-1)  
+        attention_weights = torch.softmax(attn_scores, dim=-1)
         context_vectors = torch.matmul(attention_weights, values)
 
         return context_vectors, attention_weights
