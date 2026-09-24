@@ -51,11 +51,7 @@ class SelfAttention(nn.Module):
             attention_weights: Tensor of shape (num_tokens, num_tokens)
         """
 
-        # TODO:
-        # 1. Compute queries, keys, and values.
-        # 2. Compute scaled attention scores.
-        # 3. Apply softmax.
-        # 4. Compute context vectors.
+       
 
         keys = self.key(x)  # (b, nums_tokens, d_out)
         queries = self.query(x)  # (b, nums_tokens, d_out)
@@ -96,13 +92,7 @@ class CausalAttention(nn.Module):
             context_vectors: Tensor of shape (batch_size, num_tokens, output_dim)
         """
 
-        # TODO:
-        # 1. Compute keys, queries, and values.
-        # 2. Compute scaled attention scores.
-        # 3. Mask future tokens.
-        # 4. Apply softmax.
-        # 5. Apply dropout.
-        # 6. Compute context vectors.
+        
 
         b, nums_tokens, d_in = x.shape
         keys = self.key(x)  # (b, nums_tokens, d_out)

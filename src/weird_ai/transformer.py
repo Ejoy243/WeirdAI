@@ -12,13 +12,13 @@ class TransformerBlock(nn.Module):
 
         self.norm1 = layer_norm.LayerNorm(emb_dim)
         self.norm2 = layer_norm.LayerNorm(emb_dim)
-        self.att = attention.SelfAttention(embedding_dim = emb_dim, output_dim=emb_dim, qkv_bias=qkv_bias,)
+        self.att = attention.CausalAttention(embedding_dim = emb_dim, output_dim=emb_dim, context_length=context_length, dropout= dropout, qkv_bias=qkv_bias,)
         self.ff = feed_forward.FeedForward(emb_dim)
 
     def forward( self, x):
         shortcut = x
         x = self.norm1(x)
-        x, _ = self.att(x)
+        x = self.att(x)
         x = x + shortcut
 
         shortcut = x
