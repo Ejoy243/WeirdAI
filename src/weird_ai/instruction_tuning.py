@@ -13,8 +13,9 @@ def extract_response(generated_text, prompt_text):
     # TODO:
     # Remove prompt_text from the beginning of generated_text.
     # Strip extra whitespace.
+    response = generated_text[len(prompt_text):].strip()
 
-    raise NotImplementedError("Implement extract_response.")
+    return response
 
 
 def save_instruction_model(model, path):
@@ -22,10 +23,11 @@ def save_instruction_model(model, path):
     Save instruction fine-tuned model weights.
     """
 
-    # TODO:
+    # :
     # Use torch.save with model.state_dict().
+    torch.save(model.state_dict(), path)
 
-    raise NotImplementedError("Implement save_instruction_model.")
+
 
 
 def load_instruction_model(model, path, device):
@@ -33,7 +35,8 @@ def load_instruction_model(model, path, device):
     Load instruction fine-tuned model weights.
     """
 
-    # TODO:
     # Use torch.load and model.load_state_dict.
+    model.load_state_dict(torch.load(path, map_location=device))
+    model.to(device)
+    return model
 
-    raise NotImplementedError("Implement load_instruction_model.")
