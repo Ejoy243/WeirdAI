@@ -26,13 +26,17 @@ def build_reasoning_prompt(user_prompt):
         step-by-step reasoning.
     """
 
-    # TODO:
-    # 1. Include a short role statement such as "You are Weird AI."
-    # 2. Include the phrase "Think step-by-step."
-    # 3. Include the original user_prompt.
-    # 4. Include a clear "Final Answer:" section.
+    
+    reasoning_prompt = "You are Weird AI.\n" \
+    "Think step-by-step before writing the final answer:\n" \
+    "1. Understand the user's request.\n" \
+    "2. Identify important constraints.\n" \
+    "3. Plan the response.\n" \
+    "4. Produce the final answer.\n\n" \
+    f"User prompt: {user_prompt}\n\n" \
+    "Final Answer.\n\n" \
 
-    raise NotImplementedError("Implement build_reasoning_prompt.")
+    return reasoning_prompt
 
 
 def build_parody_reasoning_prompt(topic):
@@ -49,18 +53,15 @@ def build_parody_reasoning_prompt(topic):
         A formatted prompt string with step-by-step parody planning sections.
     """
 
-    # TODO:
-    # Create a prompt that includes:
-    # 1. The phrase "Think step-by-step."
-    # 2. The topic provided by the user.
-    # 3. At least these planning steps:
-    #    - Identify the topic.
-    #    - Identify funny ideas or exaggerations.
-    #    - Identify possible rhymes.
-    #    - Write the final parody lyrics.
-    # 4. A clear "Final Parody:" section.
-
-    raise NotImplementedError("Implement build_parody_reasoning_prompt.")
+    reasoning_parody_prompt = "You are Weird AI.\n" \
+    "Think step-by-step before writing the final parody:\n" \
+    "1. Identify the topic.\n" \
+    "2. Identify funny ideas or exaggerations.\n" \
+    "3. Identify possible rhymes.\n" \
+    "4. Write the final parody lyrics.\n\n" \
+    f"Topic: {topic}\n\n" \
+    "Final Parody Lyrics:\n"    
+    return reasoning_parody_prompt
 
 
 def build_closed_world_prompt(premises, question):
@@ -77,14 +78,18 @@ def build_closed_world_prompt(premises, question):
     Returns:
         A formatted prompt string for closed-world reasoning.
     """
+    closed_world_prompt = "You are Weird AI.\n" \
+    "Use only the provided premises to answer the question.\n" \
+    "Premises:\n"
 
-    # TODO:
-    # 1. Tell the model to use only the provided premises.
-    # 2. Include each premise in a readable list.
-    # 3. Include the question.
-    # 4. Include a "Reasoning:" section and an "Answer:" section.
+    for i, premise in enumerate(premises, start=1):
+        closed_world_prompt += f"{i}. {premise}\n"
 
-    raise NotImplementedError("Implement build_closed_world_prompt.")
+    closed_world_prompt += f"\nQuestion: {question}\n\n" \
+    "Reasoning:\n" \
+    "Answer:\n"
+
+    return closed_world_prompt
 
 
 def build_open_world_prompt(premises, question):
@@ -103,13 +108,19 @@ def build_open_world_prompt(premises, question):
         A formatted prompt string for open-world reasoning.
     """
 
-    # TODO:
-    # 1. Tell the model it may use relevant background knowledge.
-    # 2. Ask it to check whether the premises conflict with known facts.
-    # 3. Include each premise in a readable list.
-    # 4. Include the question.
-    # 5. Include a "Reasoning:" section and an "Answer:" section.
 
-    raise NotImplementedError("Implement build_open_world_prompt.")
+    open_world_prompt = "You are Weird AI.\n" \
+    "You may use relevant background knowledge to answer the question.\n" \
+    "However, you must also consider whether the provided premises conflict with known facts.\n" \
+    "Premises:\n"
+
+    for i, premise in enumerate(premises, start=1):
+        open_world_prompt += f"{i}. {premise}\n"
+
+    open_world_prompt += f"\nQuestion: {question}\n\n" \
+    "Reasoning:\n" \
+    "Answer:\n"
+
+    return open_world_prompt
 
 
