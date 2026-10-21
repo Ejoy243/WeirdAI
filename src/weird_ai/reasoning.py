@@ -34,7 +34,7 @@ def build_reasoning_prompt(user_prompt):
     "3. Plan the response.\n" \
     "4. Produce the final answer.\n\n" \
     f"User prompt: {user_prompt}\n\n" \
-    "Final Answer.\n\n" \
+    "Final Answer:\n\n" \
 
     return reasoning_prompt
 
