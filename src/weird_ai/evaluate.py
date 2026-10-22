@@ -45,8 +45,14 @@ def extract_final_parody(text: str) -> str:
     # 3. If the marker exists, return everything after it, stripped.
     # 4. If the marker does not exist, return the original text, stripped.
 
-    raise NotImplementedError("Implement extract_final_parody.")
+    if not text:
+        return ""
 
+    last_marker_index = text.rfind(FINAL_PARODY_MARKER)
+    if last_marker_index != -1:
+        return text[last_marker_index + len(FINAL_PARODY_MARKER):].strip()
+
+    return text.strip()
 
 def normalize_lyrics(text: str) -> list[str]:
     """
@@ -65,7 +71,12 @@ def normalize_lyrics(text: str) -> list[str]:
     # 3. Remove blank lines.
     # 4. Return the cleaned list of lines.
 
-    raise NotImplementedError("Implement normalize_lyrics.")
+    if not text:
+        return []
+
+    lines = text.splitlines()
+    cleaned_lines = [line.strip() for line in lines]
+    return [line for line in cleaned_lines if line]
 
 
 def calculate_rhyme_score(text: str) -> float:
@@ -86,7 +97,12 @@ def calculate_rhyme_score(text: str) -> float:
     # 2. Analyze the lyrics using analyze_lyrics().
     # 3. Return the "pairwise_rhyme_score" value as a float.
 
-    raise NotImplementedError("Implement calculate_rhyme_score.")
+    final_parody = extract_final_parody(text)
+    if not final_parody:
+        return 0.0
+
+    analysis = analyze_lyrics(final_parody)
+    return float(analysis.get("pairwise_rhyme_score", 0.0))
 
 
 def calculate_structure_score(text: str, target_line_count: int = 4) -> float:
@@ -115,7 +131,22 @@ def calculate_structure_score(text: str, target_line_count: int = 4) -> float:
     # 6. Return the average of the line count score and syllable consistency score.
     # 7. Clamp the final result between 0.0 and 1.0.
 
-    raise NotImplementedError("Implement calculate_structure_score.")
+    final_parody = extract_final_parody(text)
+    if not final_parody:
+        return 0.0
+
+    lines = normalize_lyrics(final_parody)
+    if not lines:
+        return 0.0
+
+    analysis = analyze_lyrics(final_parody)
+    syllable_consistency = float(analysis.get("syllable_consistency_score", 0.0))
+
+    line_count = len(lines)
+    line_count_score = 1.0 - min(1.0, abs(line_count - target_line_count) / target_line_count if target_line_count > 0 else 0)
+
+    overall_score = (line_count_score + syllable_consistency) / 2
+    return max(0.0, min(1.0, overall_score))
 
 
 def evaluate_parody(text: str, target_line_count: int = 4) -> dict[str, Any]:
@@ -150,4 +181,50 @@ def evaluate_parody(text: str, target_line_count: int = 4) -> dict[str, Any]:
     #       "overall_score"
     #       "passed"
 
-    raise NotImplementedError("Implement evaluate_parody.")
+    final_parody = extract_final_parody(text)
+    if not final_parody:
+        return {
+            "extracted_text": "",
+            "lines": [],
+            "line_count": 0,
+            "rhyme_scheme": [],
+            "syllable_counts": [],
+            "rhyme_score": 0.0,
+            "structure_score": 0.0,
+            "overall_score": 0.0,
+            "passed": False
+        }
+
+    lines = normalize_lyrics(final_parody)
+    if not lines:
+        return {
+            "extracted_text": final_parody,
+            "lines": [],
+            "line_count": 0,
+            "rhyme_scheme": [],
+            "syllable_counts": [],
+            "rhyme_score": 0.0,
+            "structure_score": 0.0,
+            "overall_score": 0.0,
+            "passed": False
+        }
+
+    analysis = analyze_lyrics(final_parody)
+
+    rhyme_score = calculate_rhyme_score(text)
+    structure_score = calculate_structure_score(text, target_line_count)
+    overall_score = (rhyme_score + structure_score) / 2
+
+    passed = overall_score >= 0.60 and len(lines) > 0
+
+    return {
+        "extracted_text": final_parody,
+        "lines": lines,
+        "line_count": len(lines),
+        "rhyme_scheme": analysis.get("rhyme_scheme", []),
+        "syllable_counts": analysis.get("syllable_counts", []),
+        "rhyme_score": rhyme_score,
+        "structure_score": structure_score,
+        "overall_score": overall_score,
+        "passed": passed
+    }
