@@ -47,8 +47,10 @@ def get_score(evaluation: dict, score_key: str = "overall_score") -> float:
     # 1. Read score_key from the evaluation dictionary.
     # 2. Convert it to a float.
     # 3. If the key is missing or cannot be converted, return 0.0.
-
-    raise NotImplementedError("Implement get_score.")
+    try:
+        return float(evaluation.get(score_key, 0.0))
+    except (ValueError, TypeError):
+        return 0.0
 
 
 def build_refinement_prompt(
@@ -73,7 +75,18 @@ def build_refinement_prompt(
     #
     # Keep the prompt specific. "Make it better" is too vague.
 
-    raise NotImplementedError("Implement build_refinement_prompt.")
+    prompt_lines = [
+        f"Original prompt: {original_prompt}",
+        f"Current lyrics:\n{current_text}",
+        f"Current overall score: {evaluation.get(score_key, 0.0)}",
+        f"Evaluation details: {evaluation}",
+        f"Focus on: {', '.join(focus) if focus else 'None'}",
+        f"Preserve: {', '.join(preserve) if preserve else 'None'}",
+        "Please revise the lyrics to improve them while keeping the focus and preserve items in mind.",
+        "Return only the revised lyrics without any additional commentary or explanation."
+    ]
+
+    return "\n".join(prompt_lines)
 
 
 def refine_once(
@@ -103,8 +116,34 @@ def refine_once(
     # This function should not decide whether to continue the full loop.
     # It only performs one attempt.
 
-    raise NotImplementedError("Implement refine_once.")
-
+    current_evaluation = evaluation_func(current_text)
+    current_score = get_score(current_evaluation, score_key=score_key)
+    revised_text = generation_func(
+        build_refinement_prompt(
+            original_prompt,
+            current_text,
+            current_evaluation,
+            focus=focus,
+            preserve=preserve,
+            score_key=score_key,
+        ),
+        temperature=temperature,
+        top_p=top_p,
+        max_new_tokens=max_new_tokens,
+        **kwargs,
+    )
+    revised_evaluation = evaluation_func(revised_text)
+    revised_score = get_score(revised_evaluation, score_key=score_key)
+    return RefinementStep(
+        iteration=0,  # This will be set by the caller in iterative_refinement
+        prompt=original_prompt,
+        previous_text=current_text,
+        revised_text=revised_text,
+        previous_score=current_score,
+        revised_score=revised_score,
+        accepted=revised_score > current_score,
+        evaluation=revised_evaluation,
+    )
 
 def choose_better_text(
     current_text: str,
@@ -123,8 +162,17 @@ def choose_better_text(
     # 3. If require_improvement is False, accept equal scores as well.
     # 4. Return the selected text, selected evaluation, and whether the revision was accepted.
 
-    raise NotImplementedError("Implement choose_better_text.")
+    current_score = get_score(current_evaluation, score_key=score_key)
+    revised_score = get_score(revised_evaluation, score_key=score_key)
 
+    if require_improvement:
+        if revised_score > current_score:
+            return revised_text, revised_evaluation, True
+    else:
+        if revised_score >= current_score:
+            return revised_text, revised_evaluation, True
+
+    return current_text, current_evaluation, False
 
 def should_continue(
     *,
@@ -143,7 +191,13 @@ def should_continue(
     # 3. Stop if stop_on_no_improvement is True and last_improved is False.
     # 4. Otherwise continue.
 
-    raise NotImplementedError("Implement should_continue.")
+    if iteration >= max_iterations:
+        return False
+    if target_score is not None and current_score >= target_score:
+        return False
+    if stop_on_no_improvement and not last_improved:
+        return False
+    return True
 
 
 def iterative_refinement(
@@ -175,8 +229,63 @@ def iterative_refinement(
     #
     # Be careful to avoid infinite loops.
 
-    raise NotImplementedError("Implement iterative_refinement.")
+    if max_iterations < 1:
+        raise ValueError("max_iterations must be at least 1.")
 
+    evaluation = evaluation_func(initial_text)
+    initial_score = get_score(evaluation, score_key=score_key)
+    current_text = initial_text
+    steps = []
+    while should_continue(
+        iteration=len(steps),
+        max_iterations=max_iterations,
+        current_score=get_score(evaluation, score_key=score_key),
+        target_score=target_score,
+        last_improved=steps[-1].accepted if steps else True,
+        stop_on_no_improvement=stop_on_no_improvement,
+    ):
+        step = refine_once(
+            original_prompt,
+            current_text,
+            generation_func,
+            evaluation_func,
+            temperature=temperature,
+            top_p=top_p,
+            max_new_tokens=max_new_tokens,
+            score_key=score_key,
+            focus=focus,
+            preserve=preserve,
+            **kwargs,
+        )
+        current_text, evaluation, accepted = choose_better_text(
+            current_text=current_text,
+            revised_text=step.revised_text,
+            current_evaluation=evaluation,
+            revised_evaluation=step.evaluation,
+            score_key=score_key,
+            require_improvement=require_improvement,
+        )
+        step.accepted = accepted
+        steps.append(step)
+
+    final_score = get_score(evaluation, score_key=score_key)
+    last_improved = steps[-1].accepted if steps else True
+
+    if target_score is not None and final_score >= target_score:
+        stopped_reason = "target_score"
+    elif len(steps) >= max_iterations:
+        stopped_reason = "max_iterations"
+    elif stop_on_no_improvement and not last_improved:
+        stopped_reason = "no_improvement"
+
+    return {
+        "initial_text": initial_text,
+        "final_text": current_text,
+        "iterations": steps,
+        "initial_score": initial_score,
+        "final_score": final_score,
+        "stopped_reason": stopped_reason,
+    }
 
 def summarize_refinement(result: dict) -> str:
     """Create a readable summary of a refinement run."""
@@ -190,4 +299,20 @@ def summarize_refinement(result: dict) -> str:
     # This is useful for debugging and for showing the tradeoff between extra
     # inference compute and output improvement.
 
-    raise NotImplementedError("Implement summarize_refinement.")
+    iterations = result.get("iterations", [])
+
+    lines = [
+        f"Initial score: {result.get('initial_score', 0.0):.2f}",
+        f"Final score: {result.get('final_score', 0.0):.2f}",
+        f"Iterations: {len(iterations)}",
+        f"Stopped reason: {result.get('stopped_reason', 'unknown')}",
+    ]
+
+    for step in iterations:
+        status = "accepted" if step.accepted else "rejected"
+        lines.append(
+            f"  Iteration {step.iteration}: "
+            f"{step.previous_score:.2f} -> {step.revised_score:.2f} ({status})"
+        )
+
+    return "\n".join(lines)
